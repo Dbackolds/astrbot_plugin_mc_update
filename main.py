@@ -252,33 +252,28 @@ class MCUpdateReminder(Star):
             yield event.plain_result("你没有权限执行此操作")
             return
         
-        data = self._load_data()
         session_id = event.unified_msg_origin
         
-        if "target_sessions" not in data:
-            data["target_sessions"] = []
-        
-        if session_id not in data["target_sessions"]:
-            data["target_sessions"].append(session_id)
-            self._save_data(data)
-            self.target_sessions = data["target_sessions"]
-            self.config["target_sessions"] = data["target_sessions"]
+        if session_id not in self.target_sessions:
+            self.target_sessions.append(session_id)
+            self.config["target_sessions"] = self.target_sessions
             logger.info(f"MC 更新提醒: 已添加会话 {session_id} 到通知列表")
-            yield event.plain_result(f"已添加此会话到通知列表。\n会话 ID: {session_id}\n\n提示: 下次推送时将会向此会话发送通知。")
+            yield event.plain_result(
+                f"✅ 已添加此会话到通知列表。\n"
+                f"会话 ID: {session_id}\n\n"
+                "提示: 下次推送时将会向此会话发送通知。"
+            )
         else:
-            yield event.plain_result(f"此会话已在通知列表中")
+            yield event.plain_result("⚠️ 此会话已在通知列表中")
 
     @filter.command("mcupdate_list_sessions")
     async def list_sessions(self, event: AstrMessageEvent):
         """查看当前的通知会话列表"""
-        data = self._load_data()
-        sessions = data.get("target_sessions", [])
-        
-        if not sessions:
-            yield event.plain_result("当前没有添加任何会话。\n\n使用 /mcupdate_add_session 添加当前会话。")
+        if not self.target_sessions:
+            yield event.plain_result("ℹ️ 当前没有添加任何会话。\n\n使用 /mcupdate_add_session 添加当前会话。")
         else:
-            sessions_str = "\n".join([f"- {s}" for s in sessions])
-            yield event.plain_result(f"当前的通知会话列表：\n\n{sessions_str}")
+            sessions_str = "\n".join([f"- {s}" for s in self.target_sessions])
+            yield event.plain_result(f"📋 当前的通知会话列表：\n\n{sessions_str}")
 
     @filter.command("mcupdate_remove_session")
     async def remove_session(self, event: AstrMessageEvent):
@@ -288,20 +283,18 @@ class MCUpdateReminder(Star):
             yield event.plain_result("你没有权限执行此操作")
             return
         
-        data = self._load_data()
         session_id = event.unified_msg_origin
         
-        if "target_sessions" not in data:
-            data["target_sessions"] = []
-        
-        if session_id in data["target_sessions"]:
-            data["target_sessions"].remove(session_id)
-            self._save_data(data)
-            self.target_sessions = data["target_sessions"]
-            self.config["target_sessions"] = data["target_sessions"]
-            yield event.plain_result(f"已从通知列表移除此会话。会话 ID: {session_id}")
+        if session_id in self.target_sessions:
+            self.target_sessions.remove(session_id)
+            self.config["target_sessions"] = self.target_sessions
+            logger.info(f"MC 更新提醒: 已从通知列表移除会话 {session_id}")
+            yield event.plain_result(
+                f"✅ 已从通知列表移除此会话。\n"
+                f"会话 ID: {session_id}"
+            )
         else:
-            yield event.plain_result(f"此会话不在通知列表中")
+            yield event.plain_result("⚠️ 此会话不在通知列表中")
 
     async def terminate(self):
         """插件卸载"""
