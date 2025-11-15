@@ -11,10 +11,10 @@ from astrbot.api.star import Context, Star, register
 
 @register("astrbot_plugin_mc_update", "Dbackolds", "Minecraft 更新日志提醒", "1.5.0")
 class MCUpdateReminder(Star):
-    def __init__(self, context: Context, config: dict | None = None):
+    def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
         self.context = context
-        self.config = config or {}
+        self.config = config if config is not None else {}
         
         self.poll_interval = self.config.get("poll_interval", 60)
         self.target_sessions = self.config.get("target_sessions", [])
@@ -179,7 +179,6 @@ class MCUpdateReminder(Star):
 
     @filter.command("mcupdate")
     async def manual_check(self, event: AstrMessageEvent):
-        """手动检查更新（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
             yield event.plain_result("❌ 你没有权限执行此操作")
@@ -190,7 +189,6 @@ class MCUpdateReminder(Star):
 
     @filter.command("mcupdate_latest")
     async def show_latest(self, event: AstrMessageEvent):
-        """显示当前最新的正式版/测试版"""
         try:
             beta_data = await self._fetch_articles(self.sections[0]["url"])
             release_data = await self._fetch_articles(self.sections[1]["url"])
@@ -212,7 +210,6 @@ class MCUpdateReminder(Star):
 
     @filter.command("mcupdate_push_beta")
     async def push_beta(self, event: AstrMessageEvent):
-        """推送最新的测试版（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
             yield event.plain_result("❌ 你没有权限执行此操作")
@@ -234,7 +231,6 @@ class MCUpdateReminder(Star):
 
     @filter.command("mcupdate_push_release")
     async def push_release(self, event: AstrMessageEvent):
-        """推送最新的正式版（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
             yield event.plain_result("❌ 你没有权限执行此操作")
@@ -256,7 +252,6 @@ class MCUpdateReminder(Star):
 
     @filter.command("mcupdate_add_session")
     async def add_session(self, event: AstrMessageEvent):
-        """添加会话到通知列表（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
             yield event.plain_result("❌ 你没有权限执行此操作")
@@ -277,7 +272,6 @@ class MCUpdateReminder(Star):
 
     @filter.command("mcupdate_list_sessions")
     async def list_sessions(self, event: AstrMessageEvent):
-        """查看当前的通知会话列表"""
         if not self.target_sessions:
             yield event.plain_result("ℹ️ 当前没有添加任何会话\n\n使用 /mcupdate_add_session 添加当前会话")
         else:
@@ -286,7 +280,6 @@ class MCUpdateReminder(Star):
 
     @filter.command("mcupdate_remove_session")
     async def remove_session(self, event: AstrMessageEvent):
-        """从通知列表移除会话（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
             yield event.plain_result("❌ 你没有权限执行此操作")
