@@ -24,7 +24,7 @@
 - `/mcupdate_latest` - 显示当前最新的正式版/测试版
 - `/mcupdate_add_session` - 添加当前会话到通知列表
 - `/mcupdate_remove_session` - 从通知列表移除当前会话
-- `/mcupdate_latest` - 显示最新正式版和测试版信息
+
 ### 配置
 
 在 AstrBot WebUI 的插件配置页面配置以下项：
