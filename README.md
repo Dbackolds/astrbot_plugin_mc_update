@@ -20,10 +20,13 @@
 
 ### 命令
 
-- `/mcupdate` - 手动检查 MC 更新
+- `/mcupdate` - 手动检查 MC 更新（仅管理员）
 - `/mcupdate_latest` - 显示当前最新的正式版/测试版
-- `/mcupdate_add_session` - 添加当前会话到通知列表
-- `/mcupdate_remove_session` - 从通知列表移除当前会话
+- `/mcupdate_add_session` - 添加当前会话到通知列表（仅管理员）
+- `/mcupdate_list_sessions` - 查看当前的通知会话列表
+- `/mcupdate_remove_session` - 从通知列表移除当前会话（仅管理员）
+- `/mcupdate_push_beta` - 推送最新的测试版到所有会话（仅管理员）
+- `/mcupdate_push_release` - 推送最新的正式版到所有会话（仅管理员）
 
 ### 配置
 
@@ -31,6 +34,7 @@
 
 - **poll_interval**：轮询间隔（秒），默认 60 秒
 - **target_sessions**：目标会话列表，可通过命令动态添加
+- **admin_ids**：管理员 ID 列表，仅这些 ID 的用户可以执行管理员命令（如推送消息）
 
 ## 数据存储
 

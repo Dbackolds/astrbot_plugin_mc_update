@@ -10,5 +10,11 @@
     "type": "list",
     "hint": "使用 /mcupdate_add_session 命令添加会话，或在此处手动填写会话 ID",
     "default": []
+  },
+  "admin_ids": {
+    "description": "管理员 ID 列表",
+    "type": "list",
+    "hint": "允许执行管理员命令（如推送消息）的用户 ID",
+    "default": []
   }
 }
