@@ -182,7 +182,7 @@ class MCUpdateReminder(Star):
         await self._send_to_all_sessions(message_text)
 
     @filter.command("mcupdate")
-    async def manual_check(self, event: AstrMessageEvent):
+    async def manual_check(self, event: AstrMessageEvent, *args, **kwargs):
         """手动检查更新（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
@@ -193,7 +193,7 @@ class MCUpdateReminder(Star):
         yield event.plain_result("已完成手动检查 MC 更新")
 
     @filter.command("mcupdate_latest")
-    async def show_latest(self, event: AstrMessageEvent):
+    async def show_latest(self, event: AstrMessageEvent, *args, **kwargs):
         """显示当前最新的正式版/测试版"""
         try:
             # 直接从API获取最新数据
@@ -219,7 +219,7 @@ class MCUpdateReminder(Star):
             yield event.plain_result("获取最新版本信息时出错，请稍后再试")
 
     @filter.command("mcupdate_push_beta")
-    async def push_beta(self, event: AstrMessageEvent):
+    async def push_beta(self, event: AstrMessageEvent, *args, **kwargs):
         """推送最新的测试版（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
@@ -244,7 +244,7 @@ class MCUpdateReminder(Star):
             yield event.plain_result(f"推送测试版时出错: {e}")
 
     @filter.command("mcupdate_push_release")
-    async def push_release(self, event: AstrMessageEvent):
+    async def push_release(self, event: AstrMessageEvent, *args, **kwargs):
         """推送最新的正式版（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
@@ -287,7 +287,7 @@ class MCUpdateReminder(Star):
                 logger.error(f"向 {session_id} 推送消息失败: {type(e).__name__}: {e}", exc_info=True)
 
     @filter.command("mcupdate_add_session")
-    async def add_session(self, event: AstrMessageEvent):
+    async def add_session(self, event: AstrMessageEvent, *args, **kwargs):
         """添加会话到通知列表（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
@@ -309,16 +309,16 @@ class MCUpdateReminder(Star):
             yield event.plain_result("⚠️ 此会话已在通知列表中")
 
     @filter.command("mcupdate_list_sessions")
-    async def list_sessions(self, event: AstrMessageEvent):
+    async def list_sessions(self, event: AstrMessageEvent, *args, **kwargs):
         """查看当前的通知会话列表"""
         if not self.target_sessions:
-            yield event.plain_result("ℹ️ 当前没有添加任何会话。\n\n使用 /mcupdate_add_session 添加当前会话。")
+            return event.plain_result("ℹ️ 当前没有添加任何会话。\n\n使用 /mcupdate_add_session 添加当前会话。")
         else:
             sessions_str = "\n".join([f"- {s}" for s in self.target_sessions])
-            yield event.plain_result(f"📋 当前的通知会话列表：\n\n{sessions_str}")
+            return event.plain_result(f"📋 当前的通知会话列表：\n\n{sessions_str}")
 
     @filter.command("mcupdate_remove_session")
-    async def remove_session(self, event: AstrMessageEvent):
+    async def remove_session(self, event: AstrMessageEvent, *args, **kwargs):
         """从通知列表移除会话（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
