@@ -32,9 +32,6 @@ class MCUpdateReminder(Star):
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36"
         }
         
-        self.data_dir = os.path.join("data", "plugins", "astrbot_plugin_mc_update")
-        self.data_file = os.path.join(self.data_dir, "mc_versions.json")
-        
         self.poll_interval = self.config.get("poll_interval", 60)
         self.target_sessions = self.config.get("target_sessions", [])
         self.admin_ids = self.config.get("admin_ids", [])
@@ -45,21 +42,16 @@ class MCUpdateReminder(Star):
 
     async def initialize(self):
         """插件初始化"""
-        os.makedirs(self.data_dir, exist_ok=True)
-        self._init_data_file()
-        
-        data = self._load_data()
-        if "target_sessions" in data:
-            self.target_sessions = data["target_sessions"]
-            self.config["target_sessions"] = data["target_sessions"]
-        
         if self.admin_ids:
             logger.info(f"MC 更新提醒: 管理员 ID: {self.admin_ids}")
         
         logger.info(f"MC 更新提醒: 当前通知会话: {self.target_sessions}")
         
+        # 初始化 HTTP 会话
         self.session = aiohttp.ClientSession(headers=self.headers)
         self.running = True
+        
+        # 启动轮询任务
         self.task = asyncio.create_task(self._poll_loop())
         logger.info("MC 更新提醒插件已启动")
 
