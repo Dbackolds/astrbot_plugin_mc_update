@@ -63,57 +63,32 @@ class MCUpdateReminder(Star):
         self.task = asyncio.create_task(self._poll_loop())
         logger.info("MC 更新提醒插件已启动")
 
-    def _init_data_file(self):
-        """初始化数据文件"""
-        if not os.path.exists(self.data_file):
-            initial_data = {
-                "fb_Beta": {"title": "", "url": ""},
-                "fb_Release": {"title": "", "url": ""},
-                "target_sessions": []
-            }
-            with open(self.data_file, "w", encoding="utf-8") as f:
-                json.dump(initial_data, f, ensure_ascii=False, indent=2)
-
-    def _load_data(self) -> dict:
-        """加载数据"""
+    async def _fetch_articles(self, url: str) -> dict:
+        """从API获取文章数据"""
         try:
-            if not os.path.exists(self.data_file):
-                logger.warning("数据文件不存在，正在重新创建")
-                self._init_data_file()
-                return {"fb_Beta": {"title": "", "url": ""}, "fb_Release": {"title": "", "url": ""}, "target_sessions": []}
-            
-            with open(self.data_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                
-                if not data:
-                    logger.warning("数据文件为空，正在重新创建")
-                    self._init_data_file()
-                    return {"fb_Beta": {"title": "", "url": ""}, "fb_Release": {"title": "", "url": ""}, "target_sessions": []}
-                
-                return data
-        except json.JSONDecodeError as e:
-            logger.error(f"数据文件 JSON 格式错误: {e}，正在重新创建")
-            self._init_data_file()
-            return {"fb_Beta": {"title": "", "url": ""}, "fb_Release": {"title": "", "url": ""}, "target_sessions": []}
+            async with self.session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    if data and "articles" in data and data["articles"]:
+                        latest = data["articles"][0]
+                        return {
+                            "title": latest.get("title", ""),
+                            "url": latest.get("html_url", ""),
+                            "updated_at": latest.get("updated_at", "")
+                        }
         except Exception as e:
-            logger.error(f"加载数据文件失败: {type(e).__name__}: {e}")
-            return {"fb_Beta": {"title": "", "url": ""}, "fb_Release": {"title": "", "url": ""}, "target_sessions": []}
+            logger.error(f"获取文章失败: {e}")
+        return {"title": "获取失败", "url": "", "updated_at": ""}
 
-    def _save_data(self, data: dict):
-        """保存数据"""
-        try:
-            if not data or not isinstance(data, dict):
-                logger.error(f"无效的数据格式: {type(data)}")
-                return
-            
-            os.makedirs(self.data_dir, exist_ok=True)
-            
-            with open(self.data_file, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            
-            logger.debug(f"数据已保存: {self.data_file}")
-        except Exception as e:
-            logger.error(f"保存数据文件失败: {type(e).__name__}: {e}", exc_info=True)
+    async def _check_updates(self):
+        """检查更新"""
+        for section in self.sections:
+            try:
+                data = await self._fetch_articles(section["url"])
+                if data and data.get("title") and data.get("url"):
+                    await self._send_notification(section["name"], data["title"], data["url"])
+            except Exception as e:
+                logger.error(f"检查 {section['name']} 时出错: {e}")
 
     async def _poll_loop(self):
         """轮询循环"""
@@ -186,34 +161,28 @@ class MCUpdateReminder(Star):
     @filter.command("mcupdate_latest")
     async def show_latest(self, event: AstrMessageEvent):
         """显示当前最新的正式版/测试版"""
-        data = self._load_data()
-        
-        beta_data = data.get("fb_Beta", {})
-        release_data = data.get("fb_Release", {})
-        
-        if isinstance(beta_data, str):
-            beta_data = {"title": "", "url": ""}
-        if isinstance(release_data, str):
-            release_data = {"title": "", "url": ""}
-        
-        beta_title = beta_data.get("title") or "暂无数据"
-        beta_url = beta_data.get("url") or ""
-        release_title = release_data.get("title") or "暂无数据"
-        release_url = release_data.get("url") or ""
-        
-        message = f"""Minecraft Feedback 发布了新的文章：
+        try:
+            # 直接从API获取最新数据
+            beta_data = await self._fetch_articles(self.sections[0]["url"])
+            release_data = await self._fetch_articles(self.sections[1]["url"])
+            
+            message = f"""Minecraft Feedback 最新文章：
 
 🔜 测试版 (Beta):
-{beta_title}
-链接:
-{beta_url}
+{beta_data.get('title', '获取失败')}
+链接: {beta_data.get('url', '')}
+更新时间: {beta_data.get('updated_at', '未知')}
 
 🌟 正式版 (Release):
-{release_title}
-链接:
-{release_url}"""
-        
-        yield event.plain_result(message)
+{release_data.get('title', '获取失败')}
+链接: {release_data.get('url', '')}
+更新时间: {release_data.get('updated_at', '未知')}"""
+            
+            yield event.plain_result(message)
+            
+        except Exception as e:
+            logger.error(f"获取最新版本时出错: {e}")
+            yield event.plain_result("获取最新版本信息时出错，请稍后再试")
 
     @filter.command("mcupdate_push_beta")
     async def push_beta(self, event: AstrMessageEvent):
@@ -223,30 +192,22 @@ class MCUpdateReminder(Star):
             yield event.plain_result("你没有权限执行此操作")
             return
         
-        data = self._load_data()
-        
-        # 确保数据结构正确
-        if "fb_Beta" not in data or not isinstance(data["fb_Beta"], dict):
-            data["fb_Beta"] = {"title": "", "url": ""}
+        try:
+            # 直接从API获取最新数据
+            beta_data = await self._fetch_articles(self.sections[0]["url"])
             
-        beta_data = data["fb_Beta"]
-        
-        title = beta_data.get("title")
-        url = beta_data.get("url")
-        
-        if not title or not url:
-            yield event.plain_result("错误：没有可用的测试版数据")
-            return
+            if not beta_data.get("title") or not beta_data.get("url"):
+                yield event.plain_result("错误：获取测试版数据失败")
+                return
+                
+            message_text = f"Minecraft Feedback 发布了新的文章：\n\n🔜 测试版 (Beta):\n{beta_data['title']}\n\n链接:\n{beta_data['url']}"
             
-        message_text = f"Minecraft Feedback 发布了新的文章：\n\n🔜 测试版 (Beta):\n{title}\n\n链接:\n{url}"
-        
-        await self._send_to_all_sessions(message_text)
-        
-        # 更新数据中的最后推送时间
-        data["fb_Beta"]["last_push_time"] = datetime.now().isoformat()
-        self._save_data(data)
-        
-        yield event.plain_result("已向所有会话推送最新的测试版信息")
+            await self._send_to_all_sessions(message_text)
+            yield event.plain_result("已向所有会话推送最新的测试版信息")
+            
+        except Exception as e:
+            logger.error(f"推送测试版时出错: {e}")
+            yield event.plain_result(f"推送测试版时出错: {e}")
 
     @filter.command("mcupdate_push_release")
     async def push_release(self, event: AstrMessageEvent):
@@ -256,30 +217,22 @@ class MCUpdateReminder(Star):
             yield event.plain_result("你没有权限执行此操作")
             return
         
-        data = self._load_data()
-        
-        # 确保数据结构正确
-        if "fb_Release" not in data or not isinstance(data["fb_Release"], dict):
-            data["fb_Release"] = {"title": "", "url": ""}
+        try:
+            # 直接从API获取最新数据
+            release_data = await self._fetch_articles(self.sections[1]["url"])
             
-        release_data = data["fb_Release"]
-        
-        title = release_data.get("title")
-        url = release_data.get("url")
-        
-        if not title or not url:
-            yield event.plain_result("错误：没有可用的正式版数据")
-            return
+            if not release_data.get("title") or not release_data.get("url"):
+                yield event.plain_result("错误：获取正式版数据失败")
+                return
+                
+            message_text = f"Minecraft Feedback 发布了新的文章：\n\n🌟 正式版 (Release):\n{release_data['title']}\n\n链接:\n{release_data['url']}"
             
-        message_text = f"Minecraft Feedback 发布了新的文章：\n\n🌟 正式版 (Release):\n{title}\n\n链接:\n{url}"
-        
-        await self._send_to_all_sessions(message_text)
-        
-        # 更新数据中的最后推送时间
-        data["fb_Release"]["last_push_time"] = datetime.now().isoformat()
-        self._save_data(data)
-        
-        yield event.plain_result("已向所有会话推送最新的正式版信息")
+            await self._send_to_all_sessions(message_text)
+            yield event.plain_result("已向所有会话推送最新的正式版信息")
+            
+        except Exception as e:
+            logger.error(f"推送正式版时出错: {e}")
+            yield event.plain_result(f"推送正式版时出错: {e}")
 
     async def _send_to_all_sessions(self, message_text: str):
         """向所有会话发送消息"""
