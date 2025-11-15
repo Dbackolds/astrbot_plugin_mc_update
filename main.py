@@ -57,9 +57,27 @@ class MCUpdateReminder(Star):
         self.session = aiohttp.ClientSession(headers=self.headers)
         self.running = True
         
+        # 启动前先初始化版本信息，不要在启动时推送
+        await self._init_versions()
+        
         # 启动轮询任务
         self.task = asyncio.create_task(self._poll_loop())
         logger.info("MC 更新提醒插件已启动")
+
+    async def _init_versions(self):
+        """初始化版本信息，不推送通知"""
+        """在启动时获取当前版本，以便下次检查时比较"""
+        for section in self.sections:
+            try:
+                data = await self._fetch_articles(section["url"])
+                if data and data.get("title") and data.get("url"):
+                    self.last_pushed_versions[section["name"]] = {
+                        "title": data.get("title"),
+                        "url": data.get("url")
+                    }
+                    logger.debug(f"已初始化 {section['name']} 版本: {data.get('title')}")
+            except Exception as e:
+                logger.error(f"初始化 {section['name']} 版本失败: {e}")
 
     async def _fetch_articles(self, url: str) -> dict:
         """从API获取文章数据"""
