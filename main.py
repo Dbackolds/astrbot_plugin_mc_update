@@ -224,17 +224,28 @@ class MCUpdateReminder(Star):
             return
         
         data = self._load_data()
-        beta_data = data.get("fb_Beta", {})
         
-        if isinstance(beta_data, str):
-            beta_data = {"title": "", "url": ""}
+        # 确保数据结构正确
+        if "fb_Beta" not in data or not isinstance(data["fb_Beta"], dict):
+            data["fb_Beta"] = {"title": "", "url": ""}
+            
+        beta_data = data["fb_Beta"]
         
-        title = beta_data.get("title") or "暂无数据"
-        url = beta_data.get("url") or ""
+        title = beta_data.get("title")
+        url = beta_data.get("url")
         
+        if not title or not url:
+            yield event.plain_result("错误：没有可用的测试版数据")
+            return
+            
         message_text = f"Minecraft Feedback 发布了新的文章：\n\n🔜 测试版 (Beta):\n{title}\n\n链接:\n{url}"
         
         await self._send_to_all_sessions(message_text)
+        
+        # 更新数据中的最后推送时间
+        data["fb_Beta"]["last_push_time"] = datetime.now().isoformat()
+        self._save_data(data)
+        
         yield event.plain_result("已向所有会话推送最新的测试版信息")
 
     @filter.command("mcupdate_push_release")
@@ -246,17 +257,28 @@ class MCUpdateReminder(Star):
             return
         
         data = self._load_data()
-        release_data = data.get("fb_Release", {})
         
-        if isinstance(release_data, str):
-            release_data = {"title": "", "url": ""}
+        # 确保数据结构正确
+        if "fb_Release" not in data or not isinstance(data["fb_Release"], dict):
+            data["fb_Release"] = {"title": "", "url": ""}
+            
+        release_data = data["fb_Release"]
         
-        title = release_data.get("title") or "暂无数据"
-        url = release_data.get("url") or ""
+        title = release_data.get("title")
+        url = release_data.get("url")
         
+        if not title or not url:
+            yield event.plain_result("错误：没有可用的正式版数据")
+            return
+            
         message_text = f"Minecraft Feedback 发布了新的文章：\n\n🌟 正式版 (Release):\n{title}\n\n链接:\n{url}"
         
         await self._send_to_all_sessions(message_text)
+        
+        # 更新数据中的最后推送时间
+        data["fb_Release"]["last_push_time"] = datetime.now().isoformat()
+        self._save_data(data)
+        
         yield event.plain_result("已向所有会话推送最新的正式版信息")
 
     async def _send_to_all_sessions(self, message_text: str):
