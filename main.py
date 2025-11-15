@@ -51,9 +51,12 @@ class MCUpdateReminder(Star):
         data = self._load_data()
         if "target_sessions" in data:
             self.target_sessions = data["target_sessions"]
+            self.config["target_sessions"] = data["target_sessions"]
         
         if self.admin_ids:
             logger.info(f"MC 更新提醒: 管理员 ID: {self.admin_ids}")
+        
+        logger.info(f"MC 更新提醒: 当前通知会话: {self.target_sessions}")
         
         self.session = aiohttp.ClientSession(headers=self.headers)
         self.running = True
@@ -270,6 +273,7 @@ class MCUpdateReminder(Star):
             data["target_sessions"].append(session_id)
             self._save_data(data)
             self.target_sessions = data["target_sessions"]
+            self.config["target_sessions"] = data["target_sessions"]
             logger.info(f"MC 更新提醒: 已添加会话 {session_id} 到通知列表")
             yield event.plain_result(f"已添加此会话到通知列表。\n会话 ID: {session_id}\n\n提示: 下次推送时将会向此会话发送通知。")
         else:
@@ -305,6 +309,7 @@ class MCUpdateReminder(Star):
             data["target_sessions"].remove(session_id)
             self._save_data(data)
             self.target_sessions = data["target_sessions"]
+            self.config["target_sessions"] = data["target_sessions"]
             yield event.plain_result(f"已从通知列表移除此会话。会话 ID: {session_id}")
         else:
             yield event.plain_result(f"此会话不在通知列表中")
