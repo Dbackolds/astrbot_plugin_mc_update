@@ -10,7 +10,7 @@ from astrbot.api.message_components import Plain
 from astrbot.api.star import Context, Star, register
 
 
-@register("astrbot_plugin_mc_update", "Dbackolds", "Minecraft 更新日志提醒", "1.3.0")
+@register("astrbot_plugin_mc_update", "Dbackolds", "Minecraft 更新日志提醒", "1.3.1")
 class MCUpdateReminder(Star):
     def __init__(self, context: Context, config: dict | None = None):
         super().__init__(context)
@@ -71,16 +71,6 @@ class MCUpdateReminder(Star):
         except Exception as e:
             logger.error(f"获取文章失败: {e}")
         return {"title": "获取失败", "url": "", "updated_at": ""}
-
-    async def _check_updates(self):
-        """检查更新"""
-        for section in self.sections:
-            try:
-                data = await self._fetch_articles(section["url"])
-                if data and data.get("title") and data.get("url"):
-                    await self._send_notification(section["name"], data["title"], data["url"])
-            except Exception as e:
-                logger.error(f"检查 {section['name']} 时出错: {e}")
 
     async def _poll_loop(self):
         """轮询循环"""
