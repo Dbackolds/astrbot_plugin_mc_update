@@ -2,6 +2,8 @@
 
 这是一个 AstrBot 插件，用于监控 Minecraft Feedback 的最新文章，并在有新文章时自动推送通知。
 
+**版本**: v1.3.0
+
 ## 功能
 
 - **定时轮询**：每隔指定时间检查 Minecraft Feedback Beta 和 Release 版本的最新文章

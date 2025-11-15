@@ -1,6 +1,6 @@
 name: "astrbot_plugin_mc_update"
 display_name: "Minecraft 更新日志提醒"
 description: "监控 Minecraft Feedback 的最新文章，有新文章时自动推送通知"
-version: "1.2.0"
+version: "1.3.0"
 author: "Your Name"
 repo: "https://github.com/your-username/astrbot_plugin_mc_update"

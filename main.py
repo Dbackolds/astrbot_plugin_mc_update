@@ -5,12 +5,12 @@ from datetime import datetime
 
 import aiohttp
 from astrbot.api import logger
-from astrbot.api.event import AstrMessageEvent, filter
+from astrbot.api.event import AstrMessageEvent, filter, MessageChain
 from astrbot.api.message_components import Plain
 from astrbot.api.star import Context, Star, register
 
 
-@register("astrbot_plugin_mc_update", "Your Name", "Minecraft 更新日志提醒", "1.2.0")
+@register("astrbot_plugin_mc_update", "Your Name", "Minecraft 更新日志提醒", "1.3.0")
 class MCUpdateReminder(Star):
     def __init__(self, context: Context, config: dict | None = None):
         super().__init__(context)
@@ -145,16 +145,8 @@ class MCUpdateReminder(Star):
     async def _send_notification(self, section_name: str, title: str, url: str):
         """发送通知"""
         message_text = f"Minecraft Feedback 发布了新的文章：\n\n标题：\n{title}\n\n链接：\n{url}"
-        
-        if self.target_sessions:
-            for session_id in self.target_sessions:
-                try:
-                    await self.context.send_message(session_id, [Plain(message_text)])
-                    logger.info(f"已向 {session_id} 发送通知")
-                except Exception as e:
-                    logger.error(f"向 {session_id} 发送消息失败: {e}")
-        else:
-            logger.info(f"未配置目标会话，不发送通知。消息内容: {message_text}")
+        logger.info(f"MC 更新提醒: 检测到 {section_name} 有新更新, 开始推送通知")
+        await self._send_to_all_sessions(message_text)
 
     @filter.command("mcupdate")
     async def manual_check(self, event: AstrMessageEvent):
@@ -245,15 +237,21 @@ class MCUpdateReminder(Star):
 
     async def _send_to_all_sessions(self, message_text: str):
         """向所有会话发送消息"""
-        if self.target_sessions:
-            for session_id in self.target_sessions:
-                try:
-                    await self.context.send_message(session_id, [Plain(message_text)])
-                    logger.info(f"已向 {session_id} 推送消息")
-                except Exception as e:
-                    logger.error(f"向 {session_id} 推送消息失败: {e}")
-        else:
-            logger.info("未配置目标会话，不推送消息")
+        if not self.target_sessions:
+            logger.warning("未配置目标会话，不推送消息")
+            return
+        
+        logger.info(f"开始推送消息到 {len(self.target_sessions)} 个会话")
+        
+        message_chain = MessageChain([Plain(message_text)])
+        
+        for session_id in self.target_sessions:
+            try:
+                logger.debug(f"正在向会话 {session_id} 推送消息...")
+                result = await self.context.send_message(session_id, message_chain)
+                logger.info(f"成功向 {session_id} 推送消息, 结果: {result}")
+            except Exception as e:
+                logger.error(f"向 {session_id} 推送消息失败: {type(e).__name__}: {e}", exc_info=True)
 
     @filter.command("mcupdate_add_session")
     async def add_session(self, event: AstrMessageEvent):
