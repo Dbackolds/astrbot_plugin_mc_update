@@ -40,6 +40,10 @@ class MCUpdateReminder(Star):
         self.task = None
         self.session = None
         
+        # 数据持久化路径
+        self.data_dir = os.path.join("data", "plugins", "astrbot_plugin_mc_update")
+        self.data_file = os.path.join(self.data_dir, "mc_versions.json")
+        
         # 跟踪上次推送的版本信息，不重复推送
         self.last_pushed_versions = {
             "fb_Beta": {"title": "", "url": ""},
@@ -53,6 +57,12 @@ class MCUpdateReminder(Star):
         
         logger.info(f"MC 更新提醒: 当前通知会话: {self.target_sessions}")
         
+        # 创建数据目录
+        self._ensure_data_dir()
+        
+        # 加载持久化的版本信息
+        await self._load_data()
+        
         # 初始化 HTTP 会话
         self.session = aiohttp.ClientSession(headers=self.headers)
         self.running = True
@@ -63,6 +73,37 @@ class MCUpdateReminder(Star):
         # 启动轮询任务
         self.task = asyncio.create_task(self._poll_loop())
         logger.info("MC 更新提醒插件已启动")
+
+    def _ensure_data_dir(self):
+        """确保数据目录存在"""
+        try:
+            os.makedirs(self.data_dir, exist_ok=True)
+            logger.debug(f"数据目录已准备: {self.data_dir}")
+        except Exception as e:
+            logger.error(f"创建数据目录失败: {e}")
+
+    async def _load_data(self):
+        """从文件加载持久化的版本信息"""
+        try:
+            if os.path.exists(self.data_file):
+                with open(self.data_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.last_pushed_versions = data
+                    logger.info(f"已加载持久化的版本信息")
+            else:
+                logger.debug(f"数据文件不存在，将使用默认值: {self.data_file}")
+        except Exception as e:
+            logger.error(f"加载数据文件失败: {e}")
+            logger.warning("将使用默认的版本信息")
+
+    async def _save_data(self):
+        """保存版本信息到文件"""
+        try:
+            with open(self.data_file, 'w', encoding='utf-8') as f:
+                json.dump(self.last_pushed_versions, f, ensure_ascii=False, indent=2)
+                logger.debug(f"版本信息已保存到文件")
+        except Exception as e:
+            logger.error(f"保存数据文件失败: {e}")
 
     async def _init_versions(self):
         """初始化版本信息，不推送通知"""
@@ -78,6 +119,9 @@ class MCUpdateReminder(Star):
                     logger.debug(f"已初始化 {section['name']} 版本: {data.get('title')}")
             except Exception as e:
                 logger.error(f"初始化 {section['name']} 版本失败: {e}")
+        
+        # 初始化完成后保存数据
+        await self._save_data()
 
     async def _fetch_articles(self, url: str) -> dict:
         """从API获取文章数据"""
@@ -124,6 +168,8 @@ class MCUpdateReminder(Star):
                             "title": data.get("title"),
                             "url": data.get("url")
                         }
+                        # 保存更新到文件
+                        await self._save_data()
                     else:
                         logger.debug(f"{section['name']} 版本未改变，无需推送")
             except Exception as e:
