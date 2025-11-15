@@ -10,7 +10,7 @@ from astrbot.api.message_components import Plain
 from astrbot.api.star import Context, Star, register
 
 
-@register("astrbot_plugin_mc_update", "Dbackolds", "Minecraft 更新日志提醒", "1.4.0")
+@register("astrbot_plugin_mc_update", "Dbackolds", "Minecraft 更新日志提醒", "1.4.1")
 class MCUpdateReminder(Star):
     def __init__(self, context: Context, config: dict | None = None):
         super().__init__(context)
@@ -39,6 +39,12 @@ class MCUpdateReminder(Star):
         self.running = False
         self.task = None
         self.session = None
+        
+        # 跟踪上次推送的版本信息，不重复推送
+        self.last_pushed_versions = {
+            "fb_Beta": {"title": "", "url": ""},
+            "fb_Release": {"title": "", "url": ""}
+        }
 
     async def initialize(self):
         """插件初始化"""
@@ -91,7 +97,17 @@ class MCUpdateReminder(Star):
             try:
                 data = await self._fetch_articles(section["url"])
                 if data and data.get("title") and data.get("url"):
-                    await self._send_notification(section["name"], data["title"], data["url"])
+                    # 检查是否不同于上次推送的版本
+                    last_version = self.last_pushed_versions.get(section["name"], {})
+                    if last_version.get("title") != data.get("title") or last_version.get("url") != data.get("url"):
+                        await self._send_notification(section["name"], data["title"], data["url"])
+                        # 更新上次推送的版本
+                        self.last_pushed_versions[section["name"]] = {
+                            "title": data.get("title"),
+                            "url": data.get("url")
+                        }
+                    else:
+                        logger.debug(f"{section['name']} 版本未改变，无需推送")
             except Exception as e:
                 logger.error(f"检查 {section['name']} 时出错: {e}")
 
