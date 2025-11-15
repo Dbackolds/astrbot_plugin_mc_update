@@ -5,9 +5,10 @@
 ## 功能
 
 - **定时轮询**：每隔指定时间检查 Minecraft Feedback Beta 和 Release 版本的最新文章
-- **自动通知**：检测到新文章时，自动向配置的会话发送通知
+- **自动通知**：检测到新文章时，自动向配置的会话发送通知（包含标题和链接）
 - **会话管理**：支持动态添加/移除通知会话
 - **手动检查**：支持手动触发检查更新
+- **查询最新版本**：支持查询当前最新的 Beta 和 Release 版本信息
 
 ## 安装
 
@@ -23,7 +24,7 @@
 - `/mcupdate_latest` - 显示当前最新的正式版/测试版
 - `/mcupdate_add_session` - 添加当前会话到通知列表
 - `/mcupdate_remove_session` - 从通知列表移除当前会话
-
+- `/mcupdate_latest` - 显示最新正式版和测试版信息
 ### 配置
 
 在 AstrBot WebUI 的插件配置页面配置以下项：
@@ -35,9 +36,24 @@
 
 插件数据存储在 `data/plugins/astrbot_plugin_mc_update/mc_versions.json` 文件中，包括：
 
-- 最新的 Beta 版本文章标题
-- 最新的 Release 版本文章标题
+- 最新的 Beta 版本文章信息（标题和链接）
+- 最新的 Release 版本文章信息（标题和链接）
 - 通知目标会话列表
+
+数据文件格式：
+```json
+{
+  "fb_Beta": {
+    "title": "最新文章标题",
+    "url": "文章链接"
+  },
+  "fb_Release": {
+    "title": "最新文章标题",
+    "url": "文章链接"
+  },
+  "target_sessions": []
+}
+```
 
 ## 依赖
 
