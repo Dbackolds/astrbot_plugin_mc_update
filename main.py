@@ -77,19 +77,43 @@ class MCUpdateReminder(Star):
     def _load_data(self) -> dict:
         """加载数据"""
         try:
+            if not os.path.exists(self.data_file):
+                logger.warning("数据文件不存在，正在重新创建")
+                self._init_data_file()
+                return {"fb_Beta": {"title": "", "url": ""}, "fb_Release": {"title": "", "url": ""}, "target_sessions": []}
+            
             with open(self.data_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                
+                if not data:
+                    logger.warning("数据文件为空，正在重新创建")
+                    self._init_data_file()
+                    return {"fb_Beta": {"title": "", "url": ""}, "fb_Release": {"title": "", "url": ""}, "target_sessions": []}
+                
+                return data
+        except json.JSONDecodeError as e:
+            logger.error(f"数据文件 JSON 格式错误: {e}，正在重新创建")
+            self._init_data_file()
+            return {"fb_Beta": {"title": "", "url": ""}, "fb_Release": {"title": "", "url": ""}, "target_sessions": []}
         except Exception as e:
-            logger.error(f"加载数据文件失败: {e}")
+            logger.error(f"加载数据文件失败: {type(e).__name__}: {e}")
             return {"fb_Beta": {"title": "", "url": ""}, "fb_Release": {"title": "", "url": ""}, "target_sessions": []}
 
     def _save_data(self, data: dict):
         """保存数据"""
         try:
+            if not data or not isinstance(data, dict):
+                logger.error(f"无效的数据格式: {type(data)}")
+                return
+            
+            os.makedirs(self.data_dir, exist_ok=True)
+            
             with open(self.data_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            logger.debug(f"数据已保存: {self.data_file}")
         except Exception as e:
-            logger.error(f"保存数据文件失败: {e}")
+            logger.error(f"保存数据文件失败: {type(e).__name__}: {e}", exc_info=True)
 
     async def _poll_loop(self):
         """轮询循环"""
