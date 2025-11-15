@@ -97,39 +97,11 @@ class MCUpdateReminder(Star):
         if not self.session:
             return
         
-        data = self._load_data()
-        
         for section in self.sections:
             try:
-                async with self.session.get(section["url"], timeout=5) as resp:
-                    if resp.status != 200:
-                        logger.warning(f"API 请求失败: {resp.status}")
-                        continue
-                    
-                    mcfb_json = await resp.json()
-                    
-                    if not mcfb_json.get("articles"):
-                        logger.warning(f"{section['name']} 没有文章")
-                        continue
-                    
-                    latest_article = mcfb_json["articles"][0]
-                    latest_title = latest_article.get("name", "")
-                    latest_url = latest_article.get("html_url", "")
-                    
-                    current_data = data.get(section["name"], {})
-                    if isinstance(current_data, str):
-                        current_data = {"title": "", "url": ""}
-                    
-                    if current_data.get("title") != latest_title:
-                        logger.info(f"检测到 {section['name']} 有新文章: {latest_title}")
-                        
-                        await self._send_notification(section["name"], latest_title, latest_url)
-                        
-                        data[section["name"]] = {"title": latest_title, "url": latest_url}
-                        self._save_data(data)
-            
-            except asyncio.TimeoutError:
-                logger.warning(f"{section['name']} 请求超时")
+                data = await self._fetch_articles(section["url"])
+                if data and data.get("title") and data.get("url"):
+                    await self._send_notification(section["name"], data["title"], data["url"])
             except Exception as e:
                 logger.error(f"检查 {section['name']} 时出错: {e}")
 
