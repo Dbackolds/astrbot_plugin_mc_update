@@ -1,0 +1,14 @@
+{
+  "poll_interval": {
+    "description": "轮询间隔（秒）",
+    "type": "int",
+    "hint": "每隔多少秒检查一次 Minecraft Feedback 的更新",
+    "default": 60
+  },
+  "target_sessions": {
+    "description": "目标会话列表",
+    "type": "list",
+    "hint": "使用 /mcupdate_add_session 命令添加会话，或在此处手动填写会话 ID",
+    "default": []
+  }
+}
