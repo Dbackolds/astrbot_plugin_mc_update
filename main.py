@@ -186,16 +186,17 @@ class MCUpdateReminder(Star):
         """手动检查更新（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
-            return event.plain_result("你没有权限执行此操作")
+            yield event.plain_result("你没有权限执行此操作")
+            return
         
         await self._check_updates()
-        return event.plain_result("已完成手动检查 MC 更新")
+        yield event.plain_result("已完成手动检查 MC 更新")
 
     @filter.command("mcupdate_latest")
     async def show_latest(self, event: AstrMessageEvent, *args, **kwargs):
-        """昺示当前最新的正式版/测试版"""
+        """显示当前最新的正式版/测试版"""
         try:
-            # 直接从 API获取最新数据
+            # 直接从 API 获取最新数据
             beta_data = await self._fetch_articles(self.sections[0]["url"])
             release_data = await self._fetch_articles(self.sections[1]["url"])
             
@@ -211,57 +212,61 @@ class MCUpdateReminder(Star):
 链接: {release_data.get('url', '')}
 更新时间: {release_data.get('updated_at', '未知')}"""
             
-            return event.plain_result(message)
+            yield event.plain_result(message)
             
         except Exception as e:
             logger.error(f"获取最新版本时出错: {e}")
-            return event.plain_result("获取最新版本信息时出错，请稍后再试")
+            yield event.plain_result("获取最新版本信息时出错，请稍后再试")
 
     @filter.command("mcupdate_push_beta")
     async def push_beta(self, event: AstrMessageEvent, *args, **kwargs):
         """推送最新的测试版（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
-            return event.plain_result("你没有权限执行此操作")
+            yield event.plain_result("你没有权限执行此操作")
+            return
         
         try:
-            # 直接从 API获取最新数据
+            # 直接从 API 获取最新数据
             beta_data = await self._fetch_articles(self.sections[0]["url"])
             
             if not beta_data.get("title") or not beta_data.get("url"):
-                return event.plain_result("错误：获取测试版数据失败")
+                yield event.plain_result("错误：获取测试版数据失败")
+                return
                 
             message_text = f"Minecraft Feedback 发布了新的文章：\n\n🔜 测试版 (Beta):\n{beta_data['title']}\n\n链接:\n{beta_data['url']}"
             
             await self._send_to_all_sessions(message_text)
-            return event.plain_result("已向所有会话推送最新的测试版信息")
+            yield event.plain_result("已向所有会话推送最新的测试版信息")
             
         except Exception as e:
             logger.error(f"推送测试版时出错: {e}")
-            return event.plain_result(f"推送测试版时出错: {e}")
+            yield event.plain_result(f"推送测试版时出错: {e}")
 
     @filter.command("mcupdate_push_release")
     async def push_release(self, event: AstrMessageEvent, *args, **kwargs):
         """推送最新的正式版（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
-            return event.plain_result("你没有权限执行此操作")
+            yield event.plain_result("你没有权限执行此操作")
+            return
         
         try:
-            # 直接从 API获取最新数据
+            # 直接从 API 获取最新数据
             release_data = await self._fetch_articles(self.sections[1]["url"])
             
             if not release_data.get("title") or not release_data.get("url"):
-                return event.plain_result("错误：获取正式版数据失败")
+                yield event.plain_result("错误：获取正式版数据失败")
+                return
                 
             message_text = f"Minecraft Feedback 发布了新的文章：\n\n🌟 正式版 (Release):\n{release_data['title']}\n\n链接:\n{release_data['url']}"
             
             await self._send_to_all_sessions(message_text)
-            return event.plain_result("已向所有会话推送最新的正式版信息")
+            yield event.plain_result("已向所有会话推送最新的正式版信息")
             
         except Exception as e:
             logger.error(f"推送正式版时出错: {e}")
-            return event.plain_result(f"推送正式版时出错: {e}")
+            yield event.plain_result(f"推送正式版时出错: {e}")
 
     async def _send_to_all_sessions(self, message_text: str):
         """向所有会话发送消息"""
@@ -286,7 +291,8 @@ class MCUpdateReminder(Star):
         """添加会话到通知列表（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
-            return event.plain_result("你没有权限执行此操作")
+            yield event.plain_result("你没有权限执行此操作")
+            return
         
         session_id = event.unified_msg_origin
         
@@ -294,29 +300,30 @@ class MCUpdateReminder(Star):
             self.target_sessions.append(session_id)
             self.config["target_sessions"] = self.target_sessions
             logger.info(f"MC 更新提醒: 已添加会话 {session_id} 到通知列表")
-            return event.plain_result(
+            yield event.plain_result(
                 f"✅ 已添加此会话到通知列表。\n"
                 f"会话 ID: {session_id}\n\n"
                 "提示: 下次推送时将会向此会话发送通知。"
             )
         else:
-            return event.plain_result("⚠️ 此会话已在通知列表中")
+            yield event.plain_result("⚠️ 此会话已在通知列表中")
 
     @filter.command("mcupdate_list_sessions")
     async def list_sessions(self, event: AstrMessageEvent, *args, **kwargs):
         """查看当前的通知会话列表"""
         if not self.target_sessions:
-            return event.plain_result("ℹ️ 当前没有添加任何会话。\n\n使用 /mcupdate_add_session 添加当前会话。")
+            yield event.plain_result("ℹ️ 当前没有添加任何会话。\n\n使用 /mcupdate_add_session 添加当前会话。")
         else:
             sessions_str = "\n".join([f"- {s}" for s in self.target_sessions])
-            return event.plain_result(f"📋 当前的通知会话列表：\n\n{sessions_str}")
+            yield event.plain_result(f"📋 当前的通知会话列表：\n\n{sessions_str}")
 
     @filter.command("mcupdate_remove_session")
     async def remove_session(self, event: AstrMessageEvent, *args, **kwargs):
         """从通知列表移除会话（仅管理员）"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
-            return event.plain_result("你没有权限执行此操作")
+            yield event.plain_result("你没有权限执行此操作")
+            return
         
         session_id = event.unified_msg_origin
         
@@ -324,12 +331,12 @@ class MCUpdateReminder(Star):
             self.target_sessions.remove(session_id)
             self.config["target_sessions"] = self.target_sessions
             logger.info(f"MC 更新提醒: 已从通知列表移除会话 {session_id}")
-            return event.plain_result(
+            yield event.plain_result(
                 f"✅ 已从通知列表移除此会话。\n"
                 f"会话 ID: {session_id}"
             )
         else:
-            return event.plain_result("⚠️ 此会话不在通知列表中")
+            yield event.plain_result("⚠️ 此会话不在通知列表中")
 
     async def terminate(self):
         """插件卸载"""
