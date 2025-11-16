@@ -9,7 +9,7 @@ from astrbot.api.message_components import Plain
 from astrbot.api.star import Context, Star, register
 
 
-@register("astrbot_plugin_mc_update", "Dbackolds", "Minecraft 更新日志提醒", "1.6.0", "https://github.com/Dbackolds/astrbot_plugin_mc_update")
+@register("astrbot_plugin_mc_update", "Dbackolds", "Minecraft 更新日志提醒", "1.6.1", "https://github.com/Dbackolds/astrbot_plugin_mc_update")
 class MCUpdateReminder(Star):
     def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
