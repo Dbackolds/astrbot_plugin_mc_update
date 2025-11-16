@@ -9,7 +9,7 @@ from astrbot.api.message_components import Plain
 from astrbot.api.star import Context, Star, register
 
 
-@register("astrbot_plugin_mc_update", "Dbackolds", "Minecraft 更新日志提醒", "1.5.0", "https://github.com/Dbackolds/astrbot_plugin_mc_update")
+@register("astrbot_plugin_mc_update", "Dbackolds", "Minecraft 更新日志提醒", "1.6.0", "https://github.com/Dbackolds/astrbot_plugin_mc_update")
 class MCUpdateReminder(Star):
     def __init__(self, context: Context, config: dict = None):
         super().__init__(context)
@@ -178,6 +178,8 @@ class MCUpdateReminder(Star):
                 logger.error(f"向 {session_id} 推送消息失败: {e}")
 
     @filter.command("mcupdate")
+    @filter.command("检查更新")
+    @filter.command("check")
     async def manual_check(self, event: AstrMessageEvent):
         """手动检查 MC 更新
         
@@ -192,6 +194,8 @@ class MCUpdateReminder(Star):
         yield event.plain_result("✅ 已完成手动检查 MC 更新")
 
     @filter.command("mcupdate_latest")
+    @filter.command("最新文章")
+    @filter.command("latest")
     async def show_latest(self, event: AstrMessageEvent):
         """显示最新的 MC 文章
         
@@ -217,6 +221,8 @@ class MCUpdateReminder(Star):
             yield event.plain_result("❌ 获取最新版本信息时出错，请稍后再试")
 
     @filter.command("mcupdate_push_beta")
+    @filter.command("推送测试版")
+    @filter.command("pushbeta")
     async def push_beta(self, event: AstrMessageEvent):
         """推送最新的测试版
         
@@ -242,6 +248,8 @@ class MCUpdateReminder(Star):
             yield event.plain_result(f"❌ 推送测试版时出错: {e}")
 
     @filter.command("mcupdate_push_release")
+    @filter.command("推送正式版")
+    @filter.command("pushrelease")
     async def push_release(self, event: AstrMessageEvent):
         """推送最新的正式版
         
@@ -267,6 +275,8 @@ class MCUpdateReminder(Star):
             yield event.plain_result(f"❌ 推送正式版时出错: {e}")
 
     @filter.command("mcupdate_add_session")
+    @filter.command("添加会话")
+    @filter.command("addsession")
     async def add_session(self, event: AstrMessageEvent):
         """添加当前会话到通知列表
         
@@ -291,6 +301,8 @@ class MCUpdateReminder(Star):
             yield event.plain_result("⚠️ 此会话已在通知列表中")
 
     @filter.command("mcupdate_list_sessions")
+    @filter.command("会话列表")
+    @filter.command("listsessions")
     async def list_sessions(self, event: AstrMessageEvent):
         """查看通知会话列表
         
@@ -303,6 +315,8 @@ class MCUpdateReminder(Star):
             yield event.plain_result(f"📋 当前的通知会话列表:\n\n{sessions_str}")
 
     @filter.command("mcupdate_remove_session")
+    @filter.command("移除会话")
+    @filter.command("removesession")
     async def remove_session(self, event: AstrMessageEvent):
         """从通知列表移除当前会话
         
