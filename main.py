@@ -177,14 +177,8 @@ class MCUpdateReminder(Star):
             except Exception as e:
                 logger.error(f"向 {session_id} 推送消息失败: {e}")
 
-    @filter.command("mcupdate")
-    @filter.command("检查更新")
-    @filter.command("check")
-    async def manual_check(self, event: AstrMessageEvent):
-        """手动检查 MC 更新
-        
-        手动触发一次 Minecraft 更新检查，仅管理员可用。
-        """
+    async def _manual_check_impl(self, event: AstrMessageEvent):
+        """手动检查 MC 更新的实现"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
             yield event.plain_result("❌ 你没有权限执行此操作")
@@ -193,41 +187,71 @@ class MCUpdateReminder(Star):
         await self._check_updates()
         yield event.plain_result("✅ 已完成手动检查 MC 更新")
 
-    @filter.command("mcupdate_latest")
-    @filter.command("最新文章")
-    @filter.command("latest")
-    async def show_latest(self, event: AstrMessageEvent):
-        """显示最新的 MC 文章
+    @filter.command("mcupdate")
+    async def manual_check(self, event: AstrMessageEvent):
+        """手动检查 MC 更新
         
-        显示 Minecraft Feedback 中最新的 Beta 和 Release 版本文章信息。
+        手动触发一次 Minecraft 更新检查，仅管理员可用。
         """
+        async for result in self._manual_check_impl(event):
+            yield result
+
+    @filter.command("检查更新")
+    async def manual_check_cn(self, event: AstrMessageEvent):
+        """手动检查 MC 更新（中文別名）"""
+        async for result in self._manual_check_impl(event):
+            yield result
+
+    @filter.command("check")
+    async def manual_check_en(self, event: AstrMessageEvent):
+        """手动检查 MC 更新（英文別名）"""
+        async for result in self._manual_check_impl(event):
+            yield result
+
+    async def _show_latest_impl(self, event: AstrMessageEvent):
+        """显示最新文章的实现"""
         try:
             beta_data = await self._fetch_articles(self.sections[0]["url"])
             release_data = await self._fetch_articles(self.sections[1]["url"])
             
-            message = f"""📰 Minecraft Feedback 最新文章
+            message = f"""\ud83d\udcf0 Minecraft Feedback \u6700新文章
 
-🔜 测试版 (Beta):
+\ud83d\udd1c \u6d4b试\u7248 (Beta):
 {beta_data.get('title', '获取失败')}
-链接: {beta_data.get('url', '')}
+\u94fe\u63a5: {beta_data.get('url', '')}
 
-🌟 正式版 (Release):
+\ud83c\udf1f \u6b63\u5f0f\u7248 (Release):
 {release_data.get('title', '获取失败')}
-链接: {release_data.get('url', '')}"""
+\u94fe\u63a5: {release_data.get('url', '')}"""
             
             yield event.plain_result(message)
         except Exception as e:
             logger.error(f"获取最新版本时出错: {e}")
             yield event.plain_result("❌ 获取最新版本信息时出错，请稍后再试")
 
-    @filter.command("mcupdate_push_beta")
-    @filter.command("推送测试版")
-    @filter.command("pushbeta")
-    async def push_beta(self, event: AstrMessageEvent):
-        """推送最新的测试版
+    @filter.command("mcupdate_latest")
+    async def show_latest(self, event: AstrMessageEvent):
+        """显示最新的 MC 文章
         
-        立即推送最新的 Minecraft Beta 版本文章到所有配置的会话，仅管理员可用。
+        显示 Minecraft Feedback 中最新的 Beta 和 Release 版本文章信息。
         """
+        async for result in self._show_latest_impl(event):
+            yield result
+
+    @filter.command("最新文章")
+    async def show_latest_cn(self, event: AstrMessageEvent):
+        """显示最新的 MC 文章（中文別名）"""
+        async for result in self._show_latest_impl(event):
+            yield result
+
+    @filter.command("latest")
+    async def show_latest_en(self, event: AstrMessageEvent):
+        """显示最新的 MC 文章（英文別名）"""
+        async for result in self._show_latest_impl(event):
+            yield result
+
+    async def _push_beta_impl(self, event: AstrMessageEvent):
+        """推送最新测试版的实现"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
             yield event.plain_result("❌ 你没有权限执行此操作")
@@ -240,21 +264,36 @@ class MCUpdateReminder(Star):
                 yield event.plain_result("❌ 获取测试版数据失败")
                 return
             
-            message_text = f"🔜 Minecraft Beta 新文章\n\n{beta_data['title']}\n\n链接: {beta_data['url']}"
+            message_text = f"\ud83d\udd1c Minecraft Beta \u65b0\u6587\u7ae0\n\n{beta_data['title']}\n\n\u94fe\u63a5: {beta_data['url']}"
             await self._send_to_all_sessions(message_text)
             yield event.plain_result("✅ 已向所有会话推送最新的测试版信息")
         except Exception as e:
             logger.error(f"推送测试版时出错: {e}")
             yield event.plain_result(f"❌ 推送测试版时出错: {e}")
 
-    @filter.command("mcupdate_push_release")
-    @filter.command("推送正式版")
-    @filter.command("pushrelease")
-    async def push_release(self, event: AstrMessageEvent):
-        """推送最新的正式版
+    @filter.command("mcupdate_push_beta")
+    async def push_beta(self, event: AstrMessageEvent):
+        """推送最新的测试版
         
-        立即推送最新的 Minecraft Release 版本文章到所有配置的会话，仅管理员可用。
+        立即推送最新的 Minecraft Beta 版本文章到所有配置的会话，仅管理员可用。
         """
+        async for result in self._push_beta_impl(event):
+            yield result
+
+    @filter.command("推送测试版")
+    async def push_beta_cn(self, event: AstrMessageEvent):
+        """推送最新的测试版（中文別名）"""
+        async for result in self._push_beta_impl(event):
+            yield result
+
+    @filter.command("pushbeta")
+    async def push_beta_en(self, event: AstrMessageEvent):
+        """推送最新的测试版（英文別名）"""
+        async for result in self._push_beta_impl(event):
+            yield result
+
+    async def _push_release_impl(self, event: AstrMessageEvent):
+        """推送最新正式版的实现"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
             yield event.plain_result("❌ 你没有权限执行此操作")
@@ -267,61 +306,86 @@ class MCUpdateReminder(Star):
                 yield event.plain_result("❌ 获取正式版数据失败")
                 return
             
-            message_text = f"🌟 Minecraft Release 新文章\n\n{release_data['title']}\n\n链接: {release_data['url']}"
+            message_text = f"\ud83c\udf1f Minecraft Release \u65b0\u6587\u7ae0\n\n{release_data['title']}\n\n\u94fe\u63a5: {release_data['url']}"
             await self._send_to_all_sessions(message_text)
             yield event.plain_result("✅ 已向所有会话推送最新的正式版信息")
         except Exception as e:
             logger.error(f"推送正式版时出错: {e}")
             yield event.plain_result(f"❌ 推送正式版时出错: {e}")
 
+    @filter.command("mcupdate_push_release")
+    async def push_release(self, event: AstrMessageEvent):
+        """推送最新的正式版
+        
+        立即推送最新的 Minecraft Release 版本文章到所有配置的会话，仅管理员可用。
+        """
+        async for result in self._push_release_impl(event):
+            yield result
+
+    @filter.command("推送正式版")
+    async def push_release_cn(self, event: AstrMessageEvent):
+        """推送最新的正式版（中文別名）"""
+        async for result in self._push_release_impl(event):
+            yield result
+
+    @filter.command("pushrelease")
+    async def push_release_en(self, event: AstrMessageEvent):
+        """推送最新的正式版（英文別名）"""
+        async for result in self._push_release_impl(event):
+            yield result
+
     @filter.command("mcupdate_add_session")
-    @filter.command("添加会话")
-    @filter.command("addsession")
     async def add_session(self, event: AstrMessageEvent):
         """添加当前会话到通知列表
         
         将当前会话添加到 MC 更新通知列表，新文章发布时会自动推送到此会话，仅管理员可用。
         """
-        sender_id = event.get_sender_id()
-        if sender_id not in self.admin_ids:
-            yield event.plain_result("❌ 你没有权限执行此操作")
-            return
-        
-        session_id = event.unified_msg_origin
-        
-        if session_id not in self.target_sessions:
-            self.target_sessions.append(session_id)
-            self.config["target_sessions"] = self.target_sessions
-            logger.info(f"MC 更新提醒: 已添加会话 {session_id}")
-            yield event.plain_result(
-                f"✅ 已添加此会话到通知列表\n"
-                f"会话 ID: {session_id}"
-            )
-        else:
-            yield event.plain_result("⚠️ 此会话已在通知列表中")
+        async for result in self._add_session_impl(event):
+            yield result
 
-    @filter.command("mcupdate_list_sessions")
-    @filter.command("会话列表")
-    @filter.command("listsessions")
-    async def list_sessions(self, event: AstrMessageEvent):
-        """查看通知会话列表
-        
-        显示当前所有已添加的通知会话列表。
-        """
+    @filter.command("添加会话")
+    async def add_session_cn(self, event: AstrMessageEvent):
+        """添加当前会话到通知列表（中文別名）"""
+        async for result in self._add_session_impl(event):
+            yield result
+
+    @filter.command("addsession")
+    async def add_session_en(self, event: AstrMessageEvent):
+        """添加当前会话到通知列表（英文別名）"""
+        async for result in self._add_session_impl(event):
+            yield result
+
+    async def _list_sessions_impl(self, event: AstrMessageEvent):
+        """查看通知会话列表的实现"""
         if not self.target_sessions:
             yield event.plain_result("ℹ️ 当前没有添加任何会话\n\n使用 /mcupdate_add_session 添加当前会话")
         else:
             sessions_str = "\n".join([f"• {s}" for s in self.target_sessions])
             yield event.plain_result(f"📋 当前的通知会话列表:\n\n{sessions_str}")
 
-    @filter.command("mcupdate_remove_session")
-    @filter.command("移除会话")
-    @filter.command("removesession")
-    async def remove_session(self, event: AstrMessageEvent):
-        """从通知列表移除当前会话
+    @filter.command("mcupdate_list_sessions")
+    async def list_sessions(self, event: AstrMessageEvent):
+        """查看通知会话列表
         
-        将当前会话从 MC 更新通知列表中移除，不再接收自动推送的通知，仅管理员可用。
+        显示当前所有已添加的通知会话列表。
         """
+        async for result in self._list_sessions_impl(event):
+            yield result
+
+    @filter.command("会话列表")
+    async def list_sessions_cn(self, event: AstrMessageEvent):
+        """查看通知会话列表（中文別名）"""
+        async for result in self._list_sessions_impl(event):
+            yield result
+
+    @filter.command("listsessions")
+    async def list_sessions_en(self, event: AstrMessageEvent):
+        """查看通知会话列表（英文別名）"""
+        async for result in self._list_sessions_impl(event):
+            yield result
+
+    async def _remove_session_impl(self, event: AstrMessageEvent):
+        """从通知列表移除当前会话的实现"""
         sender_id = event.get_sender_id()
         if sender_id not in self.admin_ids:
             yield event.plain_result("❌ 你没有权限执行此操作")
@@ -332,13 +396,34 @@ class MCUpdateReminder(Star):
         if session_id in self.target_sessions:
             self.target_sessions.remove(session_id)
             self.config["target_sessions"] = self.target_sessions
-            logger.info(f"MC 更新提醒: 已从通知列表移除会话 {session_id}")
+            logger.info(f"MC 更新提醒: 已移除会话 {session_id}")
             yield event.plain_result(
-                f"✅ 已从通知列表移除此会话\n"
+                f"✅ 已从通知列表中移除此会话\n"
                 f"会话 ID: {session_id}"
             )
         else:
             yield event.plain_result("⚠️ 此会话不在通知列表中")
+
+    @filter.command("mcupdate_remove_session")
+    async def remove_session(self, event: AstrMessageEvent):
+        """从通知列表移除当前会话
+        
+        将当前会话从 MC 更新通知列表中移除，不再接收自动推送的通知，仅管理员可用。
+        """
+        async for result in self._remove_session_impl(event):
+            yield result
+
+    @filter.command("移除会话")
+    async def remove_session_cn(self, event: AstrMessageEvent):
+        """从通知列表移除当前会话（中文別名）"""
+        async for result in self._remove_session_impl(event):
+            yield result
+
+    @filter.command("removesession")
+    async def remove_session_en(self, event: AstrMessageEvent):
+        """从通知列表移除当前会话（英文別名）"""
+        async for result in self._remove_session_impl(event):
+            yield result
 
     async def terminate(self):
         """插件卸载"""
